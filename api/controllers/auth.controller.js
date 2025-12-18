@@ -1,4 +1,4 @@
-import { error } from "console";
+import { errorHandler } from "../utils/error.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from 'jsonwebtoken'
@@ -28,7 +28,7 @@ export const signin = async (req, res, next) =>{
         const validUser = await User.findOne({email});
         if(!validUser) return next(errorHandler(404,'User not found'));
         const validPassword = bcrypt.compareSync(password,validUser.password);//exp
-        if(!validPassword) return next(errorHandler(401,'woring credentials!'));
+        if(!validPassword) return next(errorHandler(401,'wrong credentials!'));
 
         const token = jwt.sign({id:validUser.id},process.env.JWT_SECRET);
         const {password:pass,...rest} = validUser._doc;//return without pw
