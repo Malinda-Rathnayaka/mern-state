@@ -1,8 +1,9 @@
-
 import { useState } from 'react'
 import { Link , useNavigate} from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { signInStart, signInSuccess, signInFailure } from '../redux/user/userSlice';
+
+
 
 export default function SignIn() {
   const [formData, setFormData] = useState({});
@@ -12,12 +13,12 @@ export default function SignIn() {
 
   const handleChange = (e) => {
     setFormData({
-      ...formData,
+      ...formData, 
       [e.target.id]:e.target.value,
     });
   };
 
-  console.log(formData);
+  //console.log(formData);
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,7 +39,10 @@ export default function SignIn() {
         dispatch(signInFailure(data.message));
         return;
       }
-      dispatch(signInSuccess(data.user));
+      console.log('BACKEND RESPONSE 👉', data);
+      console.log('data.user 👉', data.user);
+
+      dispatch(signInSuccess(data));//
       navigate('/');
     }catch(error){
       dispatch(signInFailure(error.message));
