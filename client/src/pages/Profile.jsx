@@ -1,7 +1,7 @@
 import { useSelector } from "react-redux"
 import { useRef } from "react"
 import { useState } from "react"
-import {updateUserFailure, updateUserSuccess, updateUserStart, deleteUserStart} from '../redux/user/userSlice'
+import {updateUserFailure, updateUserSuccess, updateUserStart, deleteUserStart, deleteUserFailure, deleteUserSuccess} from '../redux/user/userSlice'
 import { useDispatch } from "react-redux"
 import { data } from "react-router-dom"
 
@@ -51,9 +51,15 @@ export default function Profile() {
       const res = await fetch(`/api/user/delete/${currentUser._id}`,
       {
         method:`DELETE`,
-      })
+      });
+      const data = await res.json();
+      if(data.success === false) {
+        dispatch(deleteUserFailure(data.message));
+        return;
+      }
+      dispatch(deleteUserSuccess(data.message));
     } catch (error) {
-      
+      dispatch(deleteUserFailure(error.message))
     }
   }
 
