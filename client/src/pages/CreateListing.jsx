@@ -3,16 +3,33 @@ import { useState } from 'react';
 // Added 'ref' and fixed 'uploadBytesResumable' imports here:
 import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
 import { app } from '../firebase';
+import {useSelector} from 'react-redux'
+import {useNavigate} from 'react-router-dom'
 
 export default function CreateListing() {
-
+    const {currentUser} = useSelector (state => state.user);
+    const navigate = useNavigate();
     const [files, setFiles] = useState([]);
     const [formData, setFormData] = useState({
         imageUrls: [],
+        name:'',
+        description:'',
+        address:'',
+        type: 'rent',
+        bedrooms: 1,
+        bathrooms: 1,
+        regularPrice: 50,
+        discountedPrice: 0,
+        offer: false,
+        parking: false,
+        Furnished: false,
     });
 
     const [imageUploadError, setImageUploadError] = useState(null);
     const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState(false);
+    const [loading, setLoading] = useState(false);
+
     console.log(formData);
     
     
@@ -78,6 +95,59 @@ export default function CreateListing() {
             imageUrls: formData.imageUrls.filter((_ , i) => i !== index),    
         })
     }
+
+    const handleChane = (e) => {
+        if(e.target.id === 'sale' || e.target.id === 'rent'){
+            setFormData({
+                ...formData,
+                type:e.target.id
+            })
+        }
+
+        if(e.target.id === 'parking' || e.target.id === 'furnished' || e.target.id === 'offer'){
+            setFormData({
+                ...formData,
+                [e.target.id]: e.target.checked
+            })
+        }
+
+        if(e.target.type === 'number' || e.target.type === 'text' || e.target.type === 'textarea'){
+            setFormData({
+                ...formData,
+                [e.target.id]: e.target.value
+            })
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if(formData.imageUrls.length < 1) return setError('You must upload as least one image')
+            if(+formData.regularPrice < +formData.discountedPrice) return setError('Discounted price must be lower than regular price')
+            setLoading(true);
+            setError(false);
+            const res = await fetch('/api/listing/create' ,{
+                method: 'POST',
+                headers: {
+                    'Content-Type':'application/json',
+                },
+                body:JSON.stringify({
+                    ...formData,
+                    userRef: currentUser._id,
+                }),
+            });
+            const data = await res.json();
+            setLoading(false);
+            if(data.success === false){
+                setError(data.message);
+            }
+            navigate(`/listing/${data._id}`)
+
+        } catch (error) {
+            setError(error.message);
+            setLoading(false);
+        }
+    }
     
 
   return (
@@ -85,7 +155,7 @@ export default function CreateListing() {
         <h1 className='text-4xl font-bold text-center my-8 text-gray-800 tracking-tight'>
             Create a Listing
         </h1>
-        <form className='flex flex-col lg:flex-row gap-8 bg-white rounded-2xl shadow-xl p-8'>
+        <form onSubmit={handleSubmit} className='flex flex-col lg:flex-row gap-8 bg-white rounded-2xl shadow-xl p-8'>
             <div className='flex-1 space-y-5'>
                 <input 
                     type="text" 
@@ -95,6 +165,8 @@ export default function CreateListing() {
                     maxLength='62' 
                     minLength='10' 
                     required
+                    onChange={handleChane}
+                    value={formData.name}
                 />
 
                 <textarea 
@@ -103,6 +175,8 @@ export default function CreateListing() {
                     className='w-full border-2 border-gray-200 p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 min-h-[120px] resize-y' 
                     id='description' 
                     required
+                    onChange={handleChane}
+                    value={formData.description}
                 ></textarea>
 
                 <input 
@@ -111,31 +185,58 @@ export default function CreateListing() {
                     className='w-full border-2 border-gray-200 p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200' 
                     id='address' 
                     required
+                    onChange={handleChane}
+                    value={formData.address}
                 />
 
                 <div className='flex gap-6 flex-wrap p-4 bg-gray-50 rounded-xl'>
                     <div className='flex items-center gap-2'>
-                        <input type="checkbox" id='sale' className='w-5 h-5 accent-blue-600 cursor-pointer'/>
+                        <input type="checkbox" 
+                        id='sale' 
+                        className='w-5 h-5 accent-blue-600 cursor-pointer'
+                        onChange={handleChane}
+                        checked={formData.type === 'sale'}
+                        />
                         <span className='font-medium text-gray-700'>Sell</span>
                     </div>
 
                     <div className='flex items-center gap-2'>
-                        <input type="checkbox" id='rent' className='w-5 h-5 accent-blue-600 cursor-pointer'/>
+                        <input type="checkbox" 
+                        id='rent' 
+                        className='w-5 h-5 accent-blue-600 cursor-pointer'
+                        onChange={handleChane}
+                        checked={formData.type === 'rent'}
+                        />
                         <span className='font-medium text-gray-700'>Rent</span>
                     </div>
 
                     <div className='flex items-center gap-2'>
-                        <input type="checkbox" id='parking' className='w-5 h-5 accent-blue-600 cursor-pointer'/>
+                        <input type="checkbox" 
+                        id='parking' 
+                        className='w-5 h-5 accent-blue-600 cursor-pointer'
+                        onChange={handleChane}
+                        checked={formData.parking}
+                        />
                         <span className='font-medium text-gray-700'>Parking</span>
                     </div>
 
                     <div className='flex items-center gap-2'>
-                        <input type="checkbox" id='Furnished' className='w-5 h-5 accent-blue-600 cursor-pointer'/>
+                        <input type="checkbox"
+                        id='furnished' 
+                        className='w-5 h-5 accent-blue-600 cursor-pointer'
+                        onChange={handleChane}
+                        checked={formData.furnished}
+                        />
                         <span className='font-medium text-gray-700'>Furnished</span>
                     </div>
 
                     <div className='flex items-center gap-2'>
-                        <input type="checkbox" id='offer' className='w-5 h-5 accent-blue-600 cursor-pointer'/>
+                        <input type="checkbox" 
+                        id='offer' 
+                        className='w-5 h-5 accent-blue-600 cursor-pointer'
+                        onChange={handleChane}
+                        checked={formData.offer}
+                        />
                         <span className='font-medium text-gray-700'>Offer</span>
                     </div>
                 </div>
@@ -149,6 +250,8 @@ export default function CreateListing() {
                             max='10' 
                             required 
                             className='w-20 border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200'
+                            onChange={handleChane}
+                            value={formData.bedrooms}
                         />
                         <p className='font-medium text-gray-700'>Beds</p>
                     </div>
@@ -161,6 +264,8 @@ export default function CreateListing() {
                             max='10' 
                             required 
                             className='w-20 border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200'
+                            onChange={handleChane}
+                            value={formData.bathrooms}
                         />
                         <p className='font-medium text-gray-700'>Baths</p>
                     </div>
@@ -169,31 +274,38 @@ export default function CreateListing() {
                         <input 
                             type="number" 
                             id='regularPrice' 
-                            min='1' 
+                            min='50' 
                             max='100000' 
                             required 
                             className='w-24 border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200'
+                            onChange={handleChane}
+                            value={formData.regularPrice}
+
                         />
                         <div className='flex flex-col leading-tight'>
                             <p className='font-medium text-gray-700 text-sm'>Regular price</p>
                             <span className='text-xs text-gray-500'>($ / month)</span>
                         </div>
                     </div>
-
-                    <div className='flex items-center gap-3 bg-gray-50 p-3 rounded-xl'>
-                        <input 
-                            type="number" 
-                            id='discuntedPrice' 
-                            min='1' 
-                            max='100000' 
-                            required 
-                            className='w-24 border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200'
-                        />
-                        <div className='flex flex-col leading-tight'>
-                            <p className='font-medium text-gray-700 text-sm'>Discounted Price</p>
-                            <span className='text-xs text-gray-500'>($ / month)</span>
+                    {formData.offer && (
+                        <div className='flex items-center gap-3 bg-gray-50 p-3 rounded-xl'>
+                            <input 
+                                type="number" 
+                                id='discountedPrice' 
+                                min='0' 
+                                max='100000' 
+                                required 
+                                className='w-24 border-2 border-gray-200 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200'
+                                onChange={handleChane}
+                                value={formData.discountedPrice}
+                            />
+                            <div className='flex flex-col leading-tight'>
+                                <p className='font-medium text-gray-700 text-sm'>Discounted Price</p>
+                                <span className='text-xs text-gray-500'>($ / month)</span>
+                            </div>
                         </div>
-                    </div>
+                    )}
+                   
                 </div>
             </div>
 
@@ -230,9 +342,10 @@ export default function CreateListing() {
                     ))
                 }
 
-                <button className='w-full py-4 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl uppercase hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-semibold text-lg shadow-lg hover:shadow-xl disabled:opacity-80'>
-                    Create Listing
+                <button disabled={loading || uploading} className='w-full py-4 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl uppercase hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-semibold text-lg shadow-lg hover:shadow-xl disabled:opacity-80'>
+                    {loading ? 'Creating...' : 'Create listing'}
                 </button>
+                {error && <p className='text-red-700'>{error}</p>}
             </div>
         </form>
     </main>
