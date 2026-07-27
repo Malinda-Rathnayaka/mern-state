@@ -8,6 +8,7 @@ import OAuth from '../components/OAuth';
 
 export default function SignIn() {
   const [formData, setFormData] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
   const {loading , error } = useSelector((state) => state.user);//comming from userSlice
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -58,7 +59,16 @@ export default function SignIn() {
       
       <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
         <input type="email" placeholder='email' className='border p-3 rounded-lg' id='email'onChange={handleChange}/>
-        <input type="password" placeholder='password' className='border p-3 rounded-lg' id='password'onChange={handleChange}/>
+        <div className='relative'>
+          <input type={showPassword ? "text" : "password"} placeholder='password' className='border p-3 rounded-lg w-full' id='password' onChange={handleChange}/>
+          <button 
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800'
+          >
+            {showPassword ? '👁️' : '👁️‍🗨️'}
+          </button>
+        </div>
 
         <button disabled={loading} className='bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80'>
           {loading ? 'Loading...':'Sign In'}
